@@ -1,56 +1,51 @@
 from flask import Flask, jsonify
-from flask_cors import CORS  # Import CORS
-import requests
-from flask import Flask, jsonify
+from flask_cors import CORS
+import yfinance as yf
+import pytz  # Library for timezone conversion
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-API_KEY = 'T6U94XS18PG9YGKX'
+# Define timezones
+est = pytz.timezone("America/New_York")  # U.S. Market timezone (EST/EDT)
+ist = pytz.timezone("Asia/Kolkata")  # Indian Standard Time (IST)
 
 # Fetch stock data for a given symbol
 def get_stock_data(symbol):
-    url = f'https://www.alphavantage.co/query'
-    params = {
-        'function': 'TIME_SERIES_INTRADAY',
-        'symbol': symbol,
-        'interval': '5min',  # 5-minute interval for real-time data
-        'apikey': API_KEY
-    }
-
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        if "Time Series (5min)" in data:
-            latest_time = list(data["Time Series (5min)"].keys())[0]
-            stock_info = data["Time Series (5min)"][latest_time]
-            return {
-                'symbol': symbol,
-                'price': float(stock_info["1. open"]),  # Open price at that time
-                'time': latest_time
-            }
+    stock = yf.Ticker(symbol)
+    data = stock.history(period="1d", interval="5m")  # Get latest 5-min interval data
+    
+    if not data.empty:
+        latest_time_utc = data.index[-1]  # Get latest timestamp (in UTC)
+        latest_price = data["Open"].iloc[-1]  # Get latest open price
+        
+        # Convert timestamp to IST
+        latest_time_est = latest_time_utc.tz_convert(est)  # Convert UTC to EST first
+        latest_time_ist = latest_time_est.astimezone(ist)  # Convert EST to IST
+        
+        return {
+            'symbol': symbol,
+            'price': round(latest_price, 2),
+            'time': latest_time_ist.strftime('%Y-%m-%d %H:%M:%S') + ' IST'
+        }
     return None
 
-# Endpoint to get top trending stocks (dynamically)
+# Endpoint to get top trending stocks
 @app.route('/api/stocks')
 def get_top_stocks():
-    # List of stock symbols which are monitored
     stock_symbols = ['AAPL', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'RELIANCE.NS', 'TATAMOTORS.NS', 'INFY', 'HDFC', 'SBIN']
     stock_data = []
 
-    # Fetch stock data for each symbol
     for symbol in stock_symbols:
         data = get_stock_data(symbol)
         if data:
             stock_data.append(data)
 
-    # Sort stock data by price (descending)
-    sorted_stocks = sorted(stock_data, key=lambda x: x['price'], reverse=True)
+    # Sort stocks by price (descending) and get top 6
+    sorted_stocks = sorted(stock_data, key=lambda x: x['price'], reverse=True)[:6]
 
-    # Get the top 6 stocks
-    top_6_stocks = sorted_stocks[:6]
-    
-    return jsonify(top_6_stocks)
+    return jsonify(sorted_stocks)
 
 if __name__ == '__main__':
     app.run(debug=True)
