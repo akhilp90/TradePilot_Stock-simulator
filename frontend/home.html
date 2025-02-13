@@ -15,14 +15,14 @@
         }
 
         .gradient-text {
-            background: linear-gradient(90deg, #000000 50%, #2b9ecc 50%);
+            background: linear-gradient(90deg, #000000 50%, #eb4747 50%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
             color: transparent;
         }
 
-        /* Continuous fade-in and fade-out animation for the scrolling text */
+        
         .scrolling-text {
             display: block;
             font-size: 2rem;
@@ -79,9 +79,6 @@
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-6">
                     <h1 class="text-3xl font-bold gradient-text">TradePilot</h1>
-                    <button class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-blue-700 transition-all">
-                        Stocks
-                    </button>
                 </div>
                 <div class="flex items-center space-x-8">
                     <i class="bi bi-search text-2xl text-gray-600 cursor-pointer hover:text-blue-600"></i>
@@ -121,22 +118,23 @@
 
         <!-- Bottom Navigation -->
         <div class="grid grid-cols-3 gap-4 my-8 mb-20">
-            <button class="bg-gray-800 text-white p-6 rounded-lg shadow-sm hover:bg-gray-700 transition-all">
+            <button class="bg-green-600 text-white p-6 rounded-lg shadow-sm hover:bg-gray-700 transition-all">
                 Stocks
             </button>
-            <button class="bg-gray-800 text-white p-6 rounded-lg shadow-sm hover:bg-gray-700 transition-all">
+            <button onclick="window.location.href='crypto.html'" class="bg-gray-800 text-white p-6 rounded-lg shadow-sm hover:bg-gray-700 transition-all">
                 Crypto
             </button>
+            
             <button class="bg-gray-800 text-white p-6 rounded-lg shadow-sm hover:bg-gray-700 transition-all">
                 Predictions
             </button>
         </div>
     </main>
 
-    <!-- Fetch stock data here -->
+    <!-- Fetch stock data -->
     <script>
         // Fetch top stocks data from the backend API
-        fetch('http://localhost:5000/api/stocks')  // Ensure the URL is correct (backend running on port 5000)
+        fetch('http://localhost:5000/api/stocks')  
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok ' + response.statusText);
@@ -144,10 +142,8 @@
                 return response.json();
             })
             .then(data => {
-                const hotSection = document.querySelector('.hot-stocks'); // Target the section to display stocks
-                hotSection.innerHTML = '';  // Clear previous content
-
-                // Loop through the data and create stock elements dynamically
+                const hotSection = document.querySelector('.hot-stocks'); 
+                hotSection.innerHTML = '';  
                 data.forEach(stock => {
                     const stockDiv = document.createElement('div');
                     stockDiv.classList.add('bg-white', 'text-black', 'p-20', 'rounded-lg', 'shadow-lg', 'hover:shadow-xl', 'transition-all');
@@ -172,7 +168,7 @@
                 });
             })
             .catch(error => {
-                console.error('Error fetching stock data:', error);  // Log any error
+                console.error('Error fetching stock data:', error);  
                 const hotSection = document.querySelector('.hot-stocks');
                 hotSection.innerHTML = '<p>Failed to load stock data. Please try again later.</p>';
             });
