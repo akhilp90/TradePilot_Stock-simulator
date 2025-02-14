@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Navigation Buttons -->
+    <div class="container mx-auto px-4 py-4 flex justify-center space-x-4">
+        <button onclick="location.href='stocks.html'" class="bg-blue-500 text-white px-4 py-2 rounded">Stocks</button>
+        <button onclick="location.href='crypto.html'" class="bg-green-500 text-white px-4 py-2 rounded">Crypto</button>
+        <button onclick="location.href='predictions.html'" class="bg-yellow-500 text-white px-4 py-2 rounded">Predictions</button>
+    </div>
+
+    <!-- Title -->
+    <div class="container mx-auto px-4 text-center">
+        <h1 class="text-3xl font-bold my-4" id="cryptoTitle">Crypto Chart</h1>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="container mx-auto bg-white p-6 rounded-lg shadow-lg w-3/4">
+        <!-- Timeframe Buttons -->
+        <div class="flex justify-center space-x-2 mb-4">
+            <button onclick="fetchChartData('max', this)" class="time-btn bg-gray-200 px-4 py-2 rounded">All Time</button>
+            <button onclick="fetchChartData('365', this)" class="time-btn bg-gray-200 px-4 py-2 rounded">Year</button>
+            <button onclick="fetchChartData('30', this)" class="time-btn bg-gray-200 px-4 py-2 rounded">Month</button>
+            <button onclick="fetchChartData('7', this)" class="time-btn bg-gray-200 px-4 py-2 rounded active-btn">Week</button>
+            <button onclick="fetchChartData('1', this)" class="time-btn bg-gray-200 px-4 py-2 rounded">Today</button>
+        </div>
+
+        <!-- Chart -->
+        <div class="w-full h-80">
+            <canvas id="cryptoChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        const urlParams = new URLSearchParams(window.location.search);
+        const cryptoSymbol = urlParams.get('crypto');
+        document.getElementById("cryptoTitle").textContent = `${cryptoSymbol} Price Chart`;
+
+        async function fetchChartData(days = '7', btn = null) {
+            try {
+                // ✅ Highlight the selected button
+                document.querySelectorAll('.time-btn').forEach(button => button.classList.remove('active-btn'));
+                if (btn) btn.classList.add('active-btn');
+
+                const response = await fetch(`http://localhost:2408/api/crypto/${cryptoSymbol}?days=${days}`);
+                const data = await response.json();
+
+                const formattedData = formatChartData(data, days);
+                updateChart(formattedData.labels, formattedData.prices, cryptoSymbol, days);
+            } catch (error) {
+                console.error("Error loading chart data:", error);
+            }
+        }
+
+        function formatChartData(data, days) {
+            let labels, prices;
+            if (days === '1') { // Today (Hourly data)
+                labels = data.map(item => new Date(item.time).getHours() + ":00");
+            } else if (days === '7' || days === '30') { // Week or Month (Daily data)
+                labels = data.map(item => new Date(item.time).toLocaleDateString());
+            } else if (days === '365') { // Year (Monthly data)
+                labels = data.filter((_, index) => index % 30 === 0)
+                             .map(item => new Date(item.time).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+            } else { // All Time (Yearly data)
+                labels = data.filter((_, index) => index % 365 === 0)
+                             .map(item => new Date(item.time).getFullYear());
+            }
+            prices = data.map(item => item.price);
+            return { labels, prices };
+        }
+
+        function updateChart(labels, prices, cryptoSymbol, days) {
+            const canvas = document.getElementById('cryptoChart');
+            const ctx = canvas.getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+            canvas.width = canvas.width;
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${cryptoSymbol} Price`,
+                        data: prices,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.1  
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: getXAxisTitle(days) } },
+                        y: { title: { display: true, text: 'Price (USD)' } }
+                    }
+                }
+            });
+        }
+
+        function getXAxisTitle(days) {
+            switch (days) {
+                case '1': return 'Hours';
+                case '7': return 'Days';
+                case '30': return 'Days';
+                case '365': return 'Months';
+                case 'max': return 'Years';
+                default: return 'Time';
+            }
+        }
+
+        // ✅ Load default 7-day view on page load
+        fetchChartData('7', document.querySelector('.active-btn'));
+    </script>
+
+    <style>
+        .active-btn {
+            background-color: #4CAF50 !important;
+            color: white !important;
+        }
+    </style>
+
+</body>
+</html>
