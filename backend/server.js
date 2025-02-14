@@ -2,13 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 
-const app = express();
+const app = express(); 
 const PORT = 2408;
 
 app.use(cors());
 app.use(express.json());
 
-// Mapping of symbols to CoinGecko's coin IDs
+// Mapping of symbols to CoinGecko's coin ID
 const cryptoMapping = {
     "BTC": "bitcoin",
     "ETH": "ethereum",
